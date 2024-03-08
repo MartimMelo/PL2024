@@ -1,22 +1,33 @@
 import sys
 import re
 
-def bold_sub(line):
-    bold_regex = re.compile(r'\*\*(.*?)\*\*')
-    return bold_regex.sub(r'<b>\1</b>', line)
 
-def it_sub(line):
-    italic_regex = re.compiler(r'\*(.*?)\*')
-    return italic_regex.sub(r'<i>\1</i>', line)
+def header_converter(match):
+    return f"<h{len(match.group(1))}>{match.group(2)}</h{len(match.group(1))}>"
 
-def link_sub(line):
-    link_regex = re.compile(r'(\[)(.*?)(\])\((.*?)\)')
-    return link_regex.sub(r'<a href="\4">\2</a>', line)
+def list_converter(match):
+    return f"<ol>\n\t{"\n\t".join([i for i in match.group(1).split('\n')])}\n</ol>"
 
-#![imagem dum coelho](http://www.coellho.com)
-#<img src="http://www.coellho.com" alt="imagem dum coelho"/>
 
-def img_sub(line):
-    img_regex = re.compile(r'(\!\[)(.*?)(\])\((.*?)\)')
-    return img_regex.sub(r'<img src="\4" alt="\2"/>')
+def markdown_to_html_converter(md):
     
+    md = re.sub(r'(#+) +(.+)', header_converter, md) # Headers   
+    md = re.sub(r'\*\*(.+)\*\*', r'<b>\1</b>', md) # Bold
+    md = re.sub(r'\*(.+)\*', r'<i>\1</i>', md) # Italics
+    md = re.sub(r'^\d+\. (.*)$', r'<li>\1</li>', md, flags=re.MULTILINE) # Numbered lists
+    md = re.sub(r'(<li>.+</li>)+', list_converter, md, flags=re.DOTALL | re.MULTILINE) # Numbered lists
+    md = re.sub(r'!\[(.*)\]\((.*)\)', r'<img src="\2" alt="\1"/>', md) # Image
+    md = re.sub(r'\[(.*)\]\((.*)\)', r'<a href="\2">\1</a>', md) # Link
+
+    return md
+
+
+if __name__ == "__main__":
+
+    with open(sys.argv[1], 'r') as file_read: 
+        html_output = markdown_to_html_converter(file_read.read())
+    file_read.close()
+
+    with open(sys.argv[2], 'w') as file_write: 
+        file_write.write(html_output)
+    file_write.close()
